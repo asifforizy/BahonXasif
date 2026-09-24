@@ -1,0 +1,20 @@
+model Parcel {
+  id         String @id @default(uuid())
+  shipmentId String @unique
+
+  weight Decimal @db.Decimal(10, 2)
+  length Decimal? @db.Decimal(10, 2)
+  width  Decimal? @db.Decimal(10, 2)
+  height Decimal? @db.Decimal(10, 2)
+
+  description   String?
+  fragile       Boolean @default(false)
+  declaredValue Decimal? @db.Decimal(12, 2)
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("parcels")
+}

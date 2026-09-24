@@ -1,0 +1,30 @@
+model HubTransfer {
+  id              String @id @default(uuid())
+  shipmentId      String
+  fromHubId       String
+  toHubId         String
+  transferredById String?
+
+  status HubTransferStatus @default(PENDING)
+
+  transferredAt DateTime  @default(now())
+  completedAt   DateTime?
+  note          String?
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  fromHub Hub @relation( "FromHub", fields: [fromHubId],references: [id],onDelete: Restrict)
+
+  toHub Hub @relation("ToHub", fields: [toHubId], references: [id], onDelete: Restrict)
+
+  transferredBy User? @relation( fields: [transferredById],references: [id],onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shipmentId])
+  @@index([fromHubId])
+  @@index([toHubId])
+  @@index([status])
+  @@map("hub_transfers")
+}

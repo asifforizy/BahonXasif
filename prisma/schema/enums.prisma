@@ -1,0 +1,97 @@
+enum UserRole {
+  CUSTOMER
+  COURIER
+  HUB_MANAGER
+  OPERATIONS_MANAGER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BANNED
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum HubStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum CourierAvailabilityStatus {
+  AVAILABLE
+  BUSY
+  OFFLINE
+}
+
+enum ShipmentStatus {
+  PENDING
+  PICKUP_REQUESTED
+  ASSIGNED
+  PICKED_UP
+  AT_ORIGIN_HUB
+  IN_TRANSIT
+  AT_DESTINATION_HUB
+  OUT_FOR_DELIVERY
+  DELIVERED
+  FAILED
+  RETURN_TO_SENDER
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  BKASH
+  STRIPE
+}
+
+enum AssignmentType {
+  PICKUP
+  HUB_TRANSFER
+  DELIVERY
+  RETURN
+}
+
+enum AssignmentStatus {
+  ASSIGNED
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum HubTransferStatus {
+  PENDING
+  IN_TRANSIT
+  COMPLETED
+  CANCELLED
+}
+
+enum DeliveryAttemptStatus {
+  SUCCESS
+  FAILED
+}
+
+enum NotificationType {
+  SHIPMENT_CREATED
+  COURIER_ASSIGNED
+  PICKUP_COMPLETED
+  HUB_ARRIVAL
+  HUB_TRANSFER
+  OUT_FOR_DELIVERY
+  DELIVERY_SUCCESS
+  DELIVERY_FAILED
+  PAYMENT_SUCCESS
+  SHIPMENT_CANCELLED
+  RETURN_TO_SENDER
+}

@@ -1,15 +1,35 @@
 model User {
-    id           String     @id @default(uuid())
-    name         String     @db.VarChar(255)
-    email        String     @unique
-    password     String
-    profilePhoto String?
-    phone        String?    @db.VarChar(20)
-    address      String?
-    stripeCustomerId String? @unique
-    createdAt    DateTime   @default(now())
-    updatedAt    DateTime   @updatedAt
+  id             String     @id @default(uuid())
+  organizationId String?
+  name           String
+  email          String     @unique
+  password       String?
+  phone          String?
+  googleId       String?    @unique
+  role           UserRole
+  status         UserStatus @default(ACTIVE)
+  emailVerifiedAt DateTime?
 
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
-    @@map("user")
+  customer   Customer?
+  courier    Courier?
+  hubManager HubManager?
+
+  assignedByAssignments CourierAssignment[] @relation("AssignmentAssignedBy")
+  statusUpdates         ShipmentStatusHistory[]
+  hubTransfers          HubTransfer[]
+  notifications         Notification[]
+
+  authSessions AuthSession[]
+  authTokens   AuthToken[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([role])
+  @@index([status])
+  @@index([emailVerifiedAt])
+  @@map("users")
 }

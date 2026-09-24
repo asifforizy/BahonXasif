@@ -1,0 +1,22 @@
+model DeliveryAttempt {
+  id         String @id @default(uuid())
+  shipmentId String
+  courierId  String
+
+  status          DeliveryAttemptStatus
+  failureReason   String?
+  proofOfDelivery String?
+
+  attemptedAt DateTime @default(now())
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  courier Courier @relation(fields: [courierId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@index([shipmentId])
+  @@index([courierId])
+  @@index([status])
+  @@map("delivery_attempts")
+}

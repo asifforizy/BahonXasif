@@ -1,0 +1,50 @@
+model Shipment {
+  id               String         @id @default(uuid())
+  organizationId   String
+  customerId       String
+  originHubId      String
+  destinationHubId String
+  trackingNumber   String         @unique
+
+  pickupAddress  String
+  deliveryAddress String
+
+  deliveryFee       Decimal        @db.Decimal(12, 2)
+  paymentStatus     PaymentStatus  @default(PENDING)
+  status            ShipmentStatus @default(PENDING)
+
+  scheduledPickupAt DateTime?
+  deliveredAt       DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  originHub      Hub @relation("OriginHub", fields: [originHubId], references: [id], onDelete: Restrict)
+  destinationHub Hub @relation("DestinationHub", fields: [destinationHubId], references: [id], onDelete: Restrict)
+
+  parcel Parcel?
+
+  assignments CourierAssignment[]
+
+  statusHistory ShipmentStatusHistory[]
+
+  transfers HubTransfer[]
+
+  deliveryAttempts DeliveryAttempt[]
+
+  payments Payment[]
+
+  notifications Notification[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([customerId])
+  @@index([originHubId])
+  @@index([destinationHubId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
+  @@map("shipments")
+}
