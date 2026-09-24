@@ -4,6 +4,7 @@ import config from "./config";
 import cors from 'cors';
 import { notFound } from "./middleware/notFound";
 import { globalErrorHandler } from "./middleware/globalErrorhandler";
+import { AuthRoutes } from "./module/auth/auth.route";
 
 
 const app: Application = express();
@@ -19,10 +20,7 @@ app.use(
 
 
 
-
-
-
-
+app.use("/api/v1/auth", AuthRoutes);
 
 
 
