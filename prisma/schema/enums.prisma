@@ -4,6 +4,11 @@ enum UserRole {
   HUB_MANAGER
   OPERATIONS_MANAGER
   ADMIN
+  SUPER_ADMIN
+}
+enum AuthProvider {
+  GOOGLE
+  CREDENTIAL
 }
 
 enum UserStatus {

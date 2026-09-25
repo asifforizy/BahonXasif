@@ -8,14 +8,17 @@ model User {
   googleId       String?    @unique
   role           UserRole
   status         UserStatus @default(ACTIVE)
+  emailVerified      Boolean      @default(false)
   emailVerifiedAt DateTime?
-
+  authProvider       AuthProvider @default(CREDENTIAL)
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-
+  needPasswordChange Boolean      @default(false)
+  imageUrl           String       @default("")
+  imagePublicId      String       @default("")
   customer   Customer?
   courier    Courier?
   hubManager HubManager?
-
+  isDeleted          Boolean      @default(false)
   assignedByAssignments CourierAssignment[] @relation("AssignmentAssignedBy")
   statusUpdates         ShipmentStatusHistory[]
   hubTransfers          HubTransfer[]
