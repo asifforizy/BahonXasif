@@ -9,7 +9,7 @@ import { AppError } from "../../utils/AppError";
 import { redisClient } from "../../lib/redis";
 import { transporter } from "../../lib/nodemailer";
 import config from "../../config";
-import { AuthProvider, UserRole, UserStatus } from "../../../generated/prisma/client";
+import { AuthProvider, Prisma, UserRole, UserStatus } from "../../../generated/prisma/client";
 import { jwtUtils } from "../../utils/jwt";
 import { SignOptions } from "jsonwebtoken";
 import { TokenPayload } from "google-auth-library";
@@ -17,7 +17,7 @@ import { googleClient } from "../../lib/googleAuth";
 
 
 const registerUser = async (payload: IRegisterUserPayload) => {
-  const {name,password,phone,role = "CUSTOMER", } = payload;
+  const {name,password,phone,role = UserRole.CUSTOMER, } = payload;
   const email = payload.email.trim().toLowerCase();
 
   const isUserExists = await prisma.user.findUnique({
@@ -162,152 +162,197 @@ const loginUser = async (payload: ILoginUserPayload) => {
 };
 
 
-const googleLogin = async (payload: IGoogleLoginPayload) => {
-	let googleIdTokenPayload: TokenPayload | null | undefined = null;
-	try {
-		const ticket = await googleClient.verifyIdToken({
-			idToken: payload.idToken,
-			audience: config.google_client_id,
-		});
-		googleIdTokenPayload = ticket.getPayload();
-	} catch (error) {
-		console.log("Google ID Token Verification Failed", error);
-		throw new AppError(httpStatus.UNAUTHORIZED, "Invalid Or Expired Google Id Token");
-	}
+ const googleLogin = async (payload: IGoogleLoginPayload) => {
+  let googleIdTokenPayload: TokenPayload | null | undefined = null;
 
-	if (!googleIdTokenPayload) {
-		throw new AppError(httpStatus.UNAUTHORIZED, "Invalid Or Expired Google Id Token");
-	}
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: payload.idToken,
+      audience: config.google_client_id,
+    });
 
-	if (!googleIdTokenPayload.email) {
-		throw new AppError(httpStatus.BAD_REQUEST, "Google Email Not Found");
-	}
-	if (!googleIdTokenPayload.name) {
-		throw new AppError(httpStatus.BAD_REQUEST, "Google Email User Name Not Found");
-	}
+    googleIdTokenPayload = ticket.getPayload();
+  } catch (error) {
+    console.log("Google ID Token Verification Failed", error);
 
-	const ifUserExistWithGoogleAuth = await prisma.user.findUnique({
-		where: {
-			email: googleIdTokenPayload.email,
-			role: UserRole.CUSTOMER,
-			googleId: googleIdTokenPayload.sub,
-		},
-	});
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      "Invalid Or Expired Google Id Token",
+    );
+  }
 
-	let user = ifUserExistWithGoogleAuth;
+  if (!googleIdTokenPayload) {
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      "Invalid Or Expired Google Id Token",
+    );
+  }
 
-	if (!ifUserExistWithGoogleAuth) {
-		const ifUserExistWithCredentials = await prisma.user.findUnique({
-			where: {
-				email: googleIdTokenPayload.email,
-				role: UserRole.CUSTOMER,
-				authProvider: AuthProvider.CREDENTIAL,
-			},
-		});
+  if (!googleIdTokenPayload.email) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Google Email Not Found",
+    );
+  }
 
-		if (ifUserExistWithCredentials) {
-			if (!ifUserExistWithCredentials.emailVerified) {
-				throw new AppError(httpStatus.FORBIDDEN, "Email Not Verified");
-			}
+  if (!googleIdTokenPayload.name) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Google Email User Name Not Found",
+    );
+  }
 
-			if (ifUserExistWithCredentials.status === UserStatus.BANNED) {
-				throw new AppError(httpStatus.FORBIDDEN, "User Is Blocked");
-			}
+  const googleEmail = googleIdTokenPayload.email
+    .trim()
+    .toLowerCase();
 
-			if (
-				ifUserExistWithCredentials.isDeleted ||
-				ifUserExistWithCredentials.status === UserStatus.INACTIVE
-			) {
-				throw new AppError(httpStatus.FORBIDDEN, "User Is Deleted");
-			}
+  const googleId = googleIdTokenPayload.sub; 
 
-			user = await prisma.user.update({
-				where: {
-					id: ifUserExistWithCredentials.id,
-				},
+  if (!googleId) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Google User ID Not Found",
+    );
+  }
 
-				data: {
-					googleId: googleIdTokenPayload.sub,
-				},
-			});
-		} else {
-			// Google Register
-			user = await prisma.user.create({
-				data: {
-					name: googleIdTokenPayload.name,
-					email: googleIdTokenPayload.email,
-					role: UserRole.CUSTOMER,
-					googleId: googleIdTokenPayload.sub,
-					authProvider: AuthProvider.GOOGLE,
-					emailVerified: true,
-					patient: {
-						create: {
-							name: googleIdTokenPayload.name,
-							email: googleIdTokenPayload.email,
-						},
-					},
-				},
-			});
-			const tempatePath = path.join(
-				process.cwd(),
-				"src/template/user-welcome-email.ejs",
-			);
+  const existingUser = await prisma.user.findUnique({
+    where: {
+      email: googleEmail,
+    },
+  }); 
 
-			const templateData = {
-				name: user.name,
-			};
+  let user = existingUser;
 
-			const html = await ejs.renderFile(tempatePath, templateData);
+  if (existingUser) {
+    if (existingUser.isDeleted) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "User Is Deleted",
+      );
+    }
 
-			await transporter.sendMail({
-				from: config.email_sender,
-				to: user.email,
-				subject: "Welcome To PH Healthcare System",
-				// text : `Your OTP is ${otp}`
-				// html: `<h1>Your OTP is ${otp}</h1>`
-				html,
-			});
-		}
-	}
+    if (existingUser.status === UserStatus.BANNED) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "User Is Blocked",
+      );
+    }
 
-	if (!user) {
-		throw new AppError(httpStatus.NOT_FOUND, "User Not Found");
-	}
+    if (existingUser.status === UserStatus.INACTIVE) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "User Is Inactive",
+      );
+    }
 
-	if (user.status === UserStatus.BANNED) {
-		throw new AppError(httpStatus.FORBIDDEN, "User Is Blocked");
-	}
+    if (
+      existingUser.googleId &&
+      existingUser.googleId !== googleId
+    ) {
+      throw new AppError(
+        httpStatus.CONFLICT,
+        "This email is already connected to another Google account",
+      );
+    }
 
-	if (user.isDeleted || user.status === UserStatus.INACTIVE) {
-		throw new AppError(httpStatus.FORBIDDEN, "User Is Inactive Or Deleted");
-	}
+    if (existingUser.authProvider === AuthProvider.GOOGLE) {
+      if (existingUser.role !== UserRole.CUSTOMER) {
+        throw new AppError(
+          httpStatus.FORBIDDEN,
+          "Google login is only available for customer accounts",
+        );
+      }
 
-	const jwtPayload = {
-		userId: user.id,
-		name: user.name,
-		email: user.email,
-		role: user.role,
-	};
+      user = await prisma.user.update({
+        where: {
+          id: existingUser.id,
+        },
+        data: {
+          googleId,
+          emailVerified: true,
+          emailVerifiedAt: existingUser.emailVerifiedAt ?? new Date(), 
+        },
+      });
+    } else {
+      if (existingUser.role !== UserRole.CUSTOMER) {
+        throw new AppError(
+          httpStatus.FORBIDDEN,
+          "This email belongs to a non-customer account",
+        );
+      }
 
-	const accessToken = jwtUtils.createToken(
-		jwtPayload,
-		config.jwt_access_secret,
-		config.jwt_access_expires_in as SignOptions,
-	);
+      if (!existingUser.emailVerified) {
+        throw new AppError(
+          httpStatus.FORBIDDEN,
+          "Email Not Verified",
+        );
+      }
 
-	const refreshToken = jwtUtils.createToken(
-		jwtPayload,
-		config.jwt_refresh_secret,
-		config.jwt_refresh_expires_in as SignOptions,
-	);
+      user = await prisma.user.update({
+        where: {
+          id: existingUser.id,
+        },
+        data: {
+          googleId,
+        },
+      }); 
+    }
+  } else {
+    user = await prisma.user.create({
+      data: {
+        name: googleIdTokenPayload.name,
+        email: googleEmail,
+        role: UserRole.CUSTOMER,
+        googleId,
+        authProvider: AuthProvider.GOOGLE,
+        emailVerified: true,
+        emailVerifiedAt: new Date(), 
+      },
+    }); 
+  }
 
-	return {
-		accessToken,
-		refreshToken,
-	};
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User Not Found");
+  }
+
+  if (user.status === UserStatus.BANNED) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "User Is Blocked",
+    );
+  }
+
+  if (user.isDeleted || user.status === UserStatus.INACTIVE) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "User Is Inactive Or Deleted",
+    );
+  }
+
+  const jwtPayload = {
+    userId: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  };
+
+  const accessToken = jwtUtils.createToken(
+    jwtPayload,
+    config.jwt_access_secret,
+    config.jwt_access_expires_in as SignOptions,
+  );
+
+  const refreshToken = jwtUtils.createToken(
+    jwtPayload,
+    config.jwt_refresh_secret,
+    config.jwt_refresh_expires_in as SignOptions,
+  );
+
+  return {
+    accessToken,
+    refreshToken,
+  };
 };
-
-
 
 
 const forgotPassword = async (payload: IForgotPasswordPayload) => {

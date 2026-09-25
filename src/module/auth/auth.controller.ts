@@ -23,13 +23,13 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
 
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
-    secure: false,
+    secure: true,
     sameSite: "none",
     maxAge: 1000 * 60 * 60 * 24, // 24 hour or 1 day
   });
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: false,
+    secure: true,
     sameSite: "none",
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
   });
@@ -56,13 +56,13 @@ const googleLogin = catchAsync(async (req: Request, res: Response) => {
 
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
-    secure: false,
+    secure: true,
     sameSite: "none",
     maxAge: 1000 * 60 * 60 * 24, // 24 hour or 1 day
   });
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: false,
+    secure: true,
     sameSite: "none",
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
   });
@@ -121,7 +121,7 @@ export const AuthController = {
   resetPassword,
   forgotPassword,
   googleLogin,
-  
+
 };
 
 
