@@ -4,7 +4,7 @@ import config from "./config";
 import "dotenv/config";
 import { prisma } from "./lib/prisma";
 import { redisClient } from "./lib/redis";
-import { seedSuperAdmin, seedTesterAdmin, seedTesterUser } from "./utils/seed";
+
 
 
 const PORT = config.port;
@@ -12,9 +12,6 @@ const PORT = config.port;
 async function main() {
   try {
     await prisma.$connect();
-    await seedSuperAdmin();
-    await seedTesterAdmin();
-    await seedTesterUser();
     console.log("connect to database successfully");
     await redisClient.connect();
     console.log("connect to redis successfully");

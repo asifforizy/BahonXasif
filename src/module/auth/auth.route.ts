@@ -13,6 +13,6 @@ router.post("/register",validateRequest(UserValidation.UserRegistrationZodSchema
 router.post("/login",validateRequest(UserValidation.LoginZodSchema),AuthController.loginUser,)
 router.post("/forgot-password",validateRequest(UserValidation.ForgotPasswordZodSchema),AuthController.forgotPassword,);
 router.post("/reset-password",validateRequest(UserValidation.ResetPasswordZodSchema),AuthController.resetPassword,);
-
+router.post("/google", AuthController.googleLogin);
 
 export const AuthRoutes = router;
